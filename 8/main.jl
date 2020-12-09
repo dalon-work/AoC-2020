@@ -1,4 +1,3 @@
-
 const accum = Ref{Int64}(0)
 
 @enum Asm begin
@@ -27,19 +26,21 @@ function to_asm(asm :: AbstractString) :: Asm
    end
 end
 
-function part1_vm(lines)
-   lines_seen = Set()
+function vm(lines)
+   end_line = length(lines)+1
+   lines_seen = BitSet()
    cur_line = 1
    while true
-      cur_line in lines_seen && break
+      cur_line in lines_seen && error("Found loop")
+      cur_line == end_line && break
+
       push!(lines_seen, cur_line)
       (asm, val) = lines[cur_line]
       move = asmf[ Int(asm) ](val)
       cur_line += move
    end
-   println("Part 1: ", accum[])
+   return accum[]
 end
-
 
 lines = open("input.txt") do file
    asmlines = Vector{ Tuple{Asm, Int64} }()
@@ -53,9 +54,32 @@ lines = open("input.txt") do file
    asmlines
 end
 
-part1_vm(lines)
+try
+   vm(lines)
+catch err
+   println("Part1 ", accum[])
+end
 
 
+replace_lines = Vector{Tuple{Int64, Tuple{Asm, Int64}}}()
 
+for (i, (asm, val)) in enumerate(lines)
+   if asm == nop
+      push!(replace_lines,  (i, (jmp, val) ) )
+   elseif asm == jmp
+      push!(replace_lines,  (i, (nop, val) ) )
+   end
+end
 
-
+for (i, val) in replace_lines
+   accum[] = 0
+   new_lines = copy(lines)
+   new_lines[ i ] = val
+   try 
+      vm(new_lines)
+   catch err
+      continue
+   end
+   println("Part2 ", accum[], " $i $val")
+   break
+end
