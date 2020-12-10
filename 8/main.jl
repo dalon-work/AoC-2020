@@ -1,85 +1,64 @@
-const accum = Ref{Int64}(0)
+const window = Int64(25)
 
-@enum Asm begin
-   nop = 1
-   jmp
-   acc
+function check_value(number::Int64, slice)
+   for (i,val1) in enumerate(slice)
+      for val2 in slice[i+1:end]
+         if number == val1 + val2
+            return true
+         end
+      end
+   end
+   return false
 end
 
-nopf(x::Int64) :: Int64 = 1
-jmpf(x::Int64) :: Int64 = x
-
-function accf(x::Int64) :: Int64
-   accum[] += x
-   return 1
-end
-
-const asmf = [ nopf, jmpf, accf ]
-
-function to_asm(asm :: AbstractString) :: Asm
-   if asm == "nop"
-      return nop
-   elseif asm == "jmp"
-      return jmp
-   elseif asm == "acc"
-      return acc
+function part1(lines)
+   for i in window+1:length(lines)
+      value = lines[i]
+      if !check_value(lines[i], lines[i-window:i-1])
+         return value
+         break
+      end
    end
 end
 
-function vm(lines)
-   end_line = length(lines)+1
-   lines_seen = BitSet()
-   cur_line = 1
-   while true
-      cur_line in lines_seen && error("Found loop")
-      cur_line == end_line && break
+function findminmax(slice)
+   mmin = typemax(Int64)
+   mmax = typemin(Int64)
 
-      push!(lines_seen, cur_line)
-      (asm, val) = lines[cur_line]
-      move = asmf[ Int(asm) ](val)
-      cur_line += move
+   for s in slice
+      mmin = min(s, mmin)
+      mmax = max(s, mmax)
    end
-   return accum[]
+
+   return (mmin, mmax)
 end
 
-lines = open("input.txt") do file
-   asmlines = Vector{ Tuple{Asm, Int64} }()
-   lines = readlines(file)
-   for line in lines
-      (asm, val) = split(line)
-      val = parse(Int64,val)
-      asm = to_asm(asm)
-      push!(asmlines, (asm, val))
-   end
-   asmlines
-end
-
-try
-   vm(lines)
-catch err
-   println("Part1 ", accum[])
-end
-
-
-replace_lines = Vector{Tuple{Int64, Tuple{Asm, Int64}}}()
-
-for (i, (asm, val)) in enumerate(lines)
-   if asm == nop
-      push!(replace_lines,  (i, (jmp, val) ) )
-   elseif asm == jmp
-      push!(replace_lines,  (i, (nop, val) ) )
+function part2(value, prefix_sum)
+   for i in 1:length(prefix_sum)
+      for j in i+1:length(prefix_sum)
+         if prefix_sum[j] - prefix_sum[i] == value
+            return (i+1,j)
+         end
+      end
    end
 end
 
-for (i, val) in replace_lines
-   accum[] = 0
-   new_lines = copy(lines)
-   new_lines[ i ] = val
-   try 
-      vm(new_lines)
-   catch err
-      continue
-   end
-   println("Part2 ", accum[], " $i $val")
-   break
+lines = [ parse(Int64, line) for line in readlines(open("input.txt")) ]
+
+value = part1(lines)
+println("Part 1 $value")
+
+prefix_sum = copy(lines)
+
+prefix_sum[1] = 0
+for i in 2:length(lines)
+   prefix_sum[i] += prefix_sum[i-1]
 end
+
+(s,f) = part2(value, prefix_sum)
+
+println(lines[s:f])
+
+(mmin, mmax) = findminmax(lines[s:f])
+
+println("Part 2: ", mmin + mmax)
