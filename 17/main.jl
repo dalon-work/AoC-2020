@@ -36,7 +36,7 @@ function run(lI, uI, active)
          end
          if cell_active && ( active_count in [2,3] )
             push!(next_active, I)
-         elseif active_count == 3
+         elseif (!cell_active) && (active_count == 3)
             push!(next_active, I)
          end
       end
